@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FamilyTube Status</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --ink: #1b1813;
+            --muted: #6d6357;
+            --paper: #ffffff;
+            --cream: #f7f1e8;
+            --sand: #f1e6d7;
+            --accent: #ff5c00;
+            --accent-light: #ff8f66;
+            --stroke: #eadfce;
+            --shadow-sm: 0 4px 14px rgba(20, 16, 10, 0.08);
+            --shadow: 0 16px 40px rgba(20, 16, 10, 0.14);
+            --radius: 18px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Manrope', system-ui, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(1200px 600px at 10% -10%, #ffe9d6, transparent 55%),
+                radial-gradient(900px 520px at 90% -20%, #d8efff, transparent 60%),
+                var(--cream);
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .font-grotesk { font-family: 'Space Grotesk', sans-serif; }
+
+        /* ── Animations ── */
+        @keyframes floatIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes shimmer {
+            0%   { background-position: -200% 0; }
+            100% { background-position:  200% 0; }
+        }
+
+        .animate-float-in      { animation: floatIn 0.5s ease both; }
+        .animate-spin-custom   { animation: spin 1s linear infinite; }
+
+        /* ── Sidebar ── */
+        #sidebar      { transition: transform 0.3s ease; }
+        #main-content { transition: margin-left 0.3s ease; }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 11px 14px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--ink);
+            font-size: 14px;
+            margin-bottom: 6px;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .sidebar-link:hover { background: rgba(255,92,0,0.08); transform: translateX(4px); }
+        .sidebar-link.active { background: rgba(255,92,0,0.12); font-weight: 700; }
+        .sidebar-link i { margin-right: 18px; font-size: 18px; width: 20px; text-align: center; color: var(--accent); }
+
+        /* ── Page Hero (stats banner) ── */
+        .page-hero {
+            background: linear-gradient(135deg, rgba(255,92,0,0.05) 0%, rgba(255,255,255,0.8) 55%, rgba(216,239,255,0.25) 100%);
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius);
+            padding: 18px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            backdrop-filter: blur(8px);
+            margin-bottom: 28px;
+        }
+        .page-hero-stats { display: flex; align-items: center; }
+        .page-hero-stat {
+            text-align: center;
+            padding: 0 20px;
+            border-left: 1px solid var(--stroke);
+        }
+        .page-hero-stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--accent);
+            line-height: 1;
+        }
+        .page-hero-stat-label {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-top: 3px;
+        }
+
+        /* ── Section divider ── */
+        .section-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .section-label h2 {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            margin: 0;
+        }
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--stroke);
+        }
+
+        /* ── Stories strip ── */
+        .stories-strip {
+            display: flex;
+            gap: 14px;
+            overflow-x: auto;
+            padding: 4px 2px 14px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .stories-strip::-webkit-scrollbar { display: none; }
+
+        .story-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            flex-shrink: 0;
+            width: 68px;
+        }
+        .story-ring {
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            padding: 2.5px;
+            background: conic-gradient(var(--accent) 0deg, var(--accent-light) 180deg, var(--accent) 360deg);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .story-ring.seen {
+            background: conic-gradient(#d6cdc2 0deg, #c4bbb0 180deg, #d6cdc2 360deg);
+        }
+        .story-ring.own {
+            background: conic-gradient(var(--accent) 0deg, #ffa855 120deg, var(--accent-light) 240deg, var(--accent) 360deg);
+        }
+        .story-ring.add-new {
+            background: transparent;
+            border: 2.5px dashed var(--accent);
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .story-ring:hover { transform: scale(1.08); box-shadow: 0 6px 18px rgba(255,92,0,0.28); }
+
+        .story-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 20px;
+            border: 2.5px solid white;
+        }
+        .story-avatar.add-btn {
+            background: linear-gradient(135deg, #fff8f3, #ffeedd);
+            border: none;
+            color: var(--accent);
+            font-size: 18px;
+            width: 57px;
+            height: 57px;
+        }
+        .story-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--ink);
+            text-align: center;
+            max-width: 68px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .story-name.dim { color: var(--muted); font-weight: 400; }
+
+        /* ── Status cards (portrait overlay style) ── */
+        .status-card {
+            position: relative;
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            background: #1a1510;
+            border: 1px solid var(--stroke);
+            box-shadow: var(--shadow-sm);
+            aspect-ratio: 9 / 14;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .status-card:hover {
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: var(--shadow);
+        }
+        /* gradient overlay bottom-up */
+        .status-card-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                to top,
+                rgba(12, 8, 4, 0.78) 0%,
+                rgba(12, 8, 4, 0.15) 40%,
+                transparent 65%
+            );
+            pointer-events: none;
+            z-index: 2;
+        }
+        /* bottom info */
+        .status-card-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            z-index: 3;
+        }
+        .status-card-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 13px;
+            flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,0.3);
+            transition: border-color 0.2s;
+        }
+        .status-card-avatar.unseen { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+        .status-card-text { flex: 1; min-width: 0; }
+        .status-card-user {
+            font-weight: 700;
+            font-size: 12px;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .status-card-time { font-size: 10px; color: rgba(255,255,255,0.55); }
+
+        /* top badges */
+        .status-card-unseen-dot {
+            position: absolute;
+            top: 11px;
+            left: 11px;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid rgba(255,255,255,0.6);
+            z-index: 3;
+        }
+        .status-card-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(6px);
+            border-radius: 999px;
+            padding: 3px 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.9);
+            z-index: 3;
+        }
+
+        /* shimmer skeleton */
+        .skeleton-media {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, #e8ddd2 25%, #d8cfc4 50%, #e8ddd2 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+        }
+
+        /* ── Add new card ── */
+        .status-card-add {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            background: linear-gradient(150deg, #fff8f3, #ffeedd 60%, #fff3e8);
+            border: 2px dashed var(--accent);
+            border-radius: var(--radius);
+            aspect-ratio: 9 / 14;
+            transition: all 0.3s ease;
+        }
+        .status-card-add:hover {
+            background: linear-gradient(150deg, #ffeedd, #ffe0c2 60%, #ffd5aa);
+            transform: translateY(-5px);
+            box-shadow: 0 16px 32px rgba(255,92,0,0.18);
+        }
+        .status-card-add-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            box-shadow: 0 8px 20px rgba(255,92,0,0.35);
+        }
+        .status-card-add-label { font-weight: 700; font-size: 13px; color: var(--accent); }
+        .status-card-add-sub   { font-size: 11px; color: var(--muted); margin-top: -4px; }
+
+        /* ── Lightbox ── */
+        #lightbox { background: rgba(8, 6, 3, 0.97); }
+
+        #lb-img { transition: opacity 0.35s ease; }
+
+        /* Progress bars */
+        .lb-progress-track {
+            flex: 1;
+            height: 2.5px;
+            background: rgba(255,255,255,0.22);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .lb-progress-fill {
+            height: 100%;
+            background: white;
+            border-radius: 999px;
+            width: 0%;
+        }
+        .lb-progress-fill.done { width: 100%; }
+        .lb-progress-fill.running {
+            /* width is animated via JS inline style */
+        }
+
+        /* ── Upload modal ── */
+        #upload-modal > div {
+            border: 1px solid var(--stroke);
+            box-shadow: var(--shadow);
+        }
+
+        /* ── Empty state ── */
+        #empty-state { animation: floatIn 0.5s ease both; }
+
+        /* ── Scrollbar hide ── */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="fixed top-0 w-full h-16 flex justify-between items-center px-4 md:px-6 bg-white/90 backdrop-blur-md z-50 border-b border-[#eadfce]/60">
+    <div class="flex items-center gap-4">
+        <button onclick="toggleSidebar()" class="p-2 hover:bg-black/5 rounded-full transition-colors" aria-label="Toggle sidebar">
+            <i class="fas fa-bars text-lg"></i>
+        </button>
+        <div class="flex items-center gap-2 font-bold text-xl tracking-tight font-grotesk">
+            <i class="fab fa-youtube text-[#ff5c00] text-2xl"></i>
+            <span>FamilyTube</span>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+        <button onclick="openUploadModal()" class="hidden sm:flex items-center gap-2 bg-[#ff5c00] text-white px-5 py-2.5 rounded-full font-semibold hover:-translate-y-0.5 shadow-lg shadow-orange-500/20 transition-all">
+            <i class="fas fa-plus text-sm"></i>
+            <span>Add Status</span>
+        </button>
+        <div class="flex items-center gap-2 bg-white border border-[#eadfce] px-4 py-2 rounded-full font-semibold shadow-sm">
+            <i class="far fa-user-circle text-lg text-[#6d6357]"></i>
+            <span id="current-user-name">{{ username }}</span>
+        </div>
+        <button onclick="window.location.href='/logout'" class="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors" aria-label="Logout">
+            <i class="fas fa-sign-out-alt text-lg"></i>
+        </button>
+    </div>
+</header>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<nav id="sidebar" class="fixed top-16 left-0 h-[calc(100vh-64px)] w-[240px] bg-white/95 border-r border-[#eadfce]/70 p-[14px] z-40 overflow-y-auto transform translate-x-0">
+    <div class="space-y-1">
+        <a href="/index"  class="sidebar-link"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="#"       class="sidebar-link"><i class="fas fa-fire"></i><span>Trending</span></a>
+        <a href="/chat"   class="sidebar-link"><i class="fas fa-comment-dots"></i><span>Chats</span></a>
+        <a href="/videos" class="sidebar-link"><i class="fas fa-play-circle"></i><span>Videos</span></a>
+        <a href="#"       class="sidebar-link"><i class="fas fa-user-friends"></i><span>Profiles</span></a>
+        <a href="#"       class="sidebar-link"><i class="fas fa-plane"></i><span>Trips</span></a>
+        <a href="#"       class="sidebar-link active"><i class="fas fa-history"></i><span>Status</span></a>
+        <div class="my-3 border-t border-[#eadfce]"></div>
+        <a href="#"       class="sidebar-link"><i class="fas fa-cog"></i><span>Settings</span></a>
+    </div>
+</nav>
+
+<!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+<main id="main-content" class="pt-24 px-4 pb-10 md:px-8 min-h-screen md:ml-60">
+
+    <!-- Page Hero with Stats -->
+    <div class="page-hero animate-float-in">
+        <div>
+            <h1 class="text-2xl font-bold font-grotesk mb-0.5">Status</h1>
+            <p class="text-[#6d6357] text-sm">Share moments with your family</p>
+        </div>
+        <div class="page-hero-stats">
+            <div class="page-hero-stat">
+                <div id="stat-total" class="page-hero-stat-value">0</div>
+                <div class="page-hero-stat-label">Updates</div>
+            </div>
+            <div class="page-hero-stat">
+                <div id="stat-members" class="page-hero-stat-value">0</div>
+                <div class="page-hero-stat-label">Members</div>
+            </div>
+            <div class="page-hero-stat">
+                <div id="stat-unseen" class="page-hero-stat-value">0</div>
+                <div class="page-hero-stat-label">Unseen</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Add Button -->
+    <button onclick="openUploadModal()" class="sm:hidden w-full flex items-center justify-center gap-2 bg-[#ff5c00] text-white px-5 py-3 rounded-full font-semibold shadow-lg shadow-orange-500/20 mb-6">
+        <i class="fas fa-plus text-sm"></i>
+        <span>Add Status</span>
+    </button>
+
+    <!-- Stories Strip -->
+    <div class="section-label"><h2>Stories</h2></div>
+    <div id="stories-strip" class="stories-strip mb-8"></div>
+
+    <!-- Status Grid -->
+    <div class="section-label"><h2>All Status</h2></div>
+    <div id="status-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden text-center py-20 text-[#6d6357]">
+        <div class="w-20 h-20 rounded-full bg-[#f1e6d7] flex items-center justify-center mx-auto mb-5 shadow-sm">
+            <i class="far fa-image text-3xl text-[#ff5c00]"></i>
+        </div>
+        <h3 class="text-xl font-bold mb-2 text-[#1b1813] font-grotesk">No Status Yet</h3>
+        <p class="mb-6 text-sm">Be the first to share a moment with your family!</p>
+        <button onclick="openUploadModal()" class="inline-flex items-center gap-2 bg-[#ff5c00] text-white px-6 py-3 rounded-full font-semibold shadow-lg shadow-orange-500/20 hover:-translate-y-0.5 transition-all">
+            <i class="fas fa-plus text-sm"></i> Share First Status
+        </button>
+    </div>
+</main>
+
+<!-- ═══════════════ UPLOAD MODAL ═══════════════ -->
+<div id="upload-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 animate-float-in">
+    <div class="bg-white w-full max-w-md rounded-[24px] overflow-hidden">
+
+        <!-- Modal Header -->
+        <div class="px-6 pt-6 pb-4 flex justify-between items-start border-b border-[#eadfce]">
+            <div>
+                <h2 class="text-xl font-bold font-grotesk leading-tight">Share a Status</h2>
+                <p class="text-xs text-[#6d6357] mt-1">Photo or video &middot; Max 10 MB</p>
+            </div>
+            <button onclick="closeUploadModal()" class="w-9 h-9 flex items-center justify-center rounded-full bg-[#f1e6d7] hover:bg-[#eadfce] transition-colors text-[#6d6357] hover:text-[#1b1813] flex-shrink-0 mt-0.5">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-6">
+            <!-- Drop Zone -->
+            <div id="upload-zone"
+                 class="border-2 border-dashed border-[#eadfce] rounded-2xl text-center cursor-pointer transition-all duration-200 mb-5 hover:border-[#ff5c00] hover:bg-[#ff5c00]/5 overflow-hidden"
+                 onclick="triggerFileSelect()"
+                 ondragover="handleDragOver(event)"
+                 ondragleave="handleDragLeave(event)"
+                 ondrop="handleDrop(event)">
+
+                <!-- Placeholder -->
+                <div id="upload-placeholder" class="py-10 px-6">
+                    <div class="w-14 h-14 rounded-full bg-[#ff5c00]/10 flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-cloud-upload-alt text-2xl text-[#ff5c00]"></i>
+                    </div>
+                    <p class="font-semibold text-[#1b1813] mb-1">Tap or drag to add media</p>
+                    <p class="text-xs text-[#6d6357]">Photo &amp; Video supported</p>
+                </div>
+
+                <!-- Preview -->
+                <div id="upload-preview-container" class="hidden relative">
+                    <img id="img-preview" class="w-full max-h-64 object-cover hidden">
+                    <video id="video-preview" class="w-full max-h-64 object-cover bg-black hidden" controls></video>
+                    <button onclick="clearPreview(event)" class="absolute top-2 right-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors z-10 w-8 h-8 flex items-center justify-center">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </div>
+
+                <input type="file" id="file-input" accept="image/*,video/*" class="hidden" onchange="handleFileSelect(event)">
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3">
+                <button onclick="closeUploadModal()" class="flex-1 px-4 py-3 rounded-full font-semibold text-[#1b1813] bg-[#f1e6d7] hover:bg-[#eadfce] transition-colors text-sm">
+                    Cancel
+                </button>
+                <button id="btn-upload" onclick="handleUpload()" disabled
+                        class="flex-1 px-4 py-3 rounded-full font-semibold text-white bg-[#ff5c00] hover:bg-[#e65200] disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-orange-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 text-sm">
+                    <span id="btn-text">Share</span>
+                    <div id="btn-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin-custom"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ LIGHTBOX ═══════════════ -->
+<div id="lightbox" class="fixed inset-0 z-[60] hidden flex-col" onclick="closeLightbox()">
+
+    <!-- Top Bar -->
+    <div class="absolute top-0 left-0 w-full z-20 px-4 pt-4 pb-3 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
+        <!-- Progress Bars -->
+        <div id="lb-progress-bars" class="flex gap-1.5 mb-3"></div>
+        <!-- User Info Row -->
+        <div class="flex justify-between items-center pointer-events-auto" onclick="event.stopPropagation()">
+            <div class="flex items-center gap-3 text-white">
+                <div id="lb-avatar" class="w-10 h-10 rounded-full bg-gradient-to-br from-[#ff5c00] to-[#ff8f66] flex items-center justify-center font-bold text-lg border-2 border-white/30 flex-shrink-0"></div>
+                <div>
+                    <div id="lb-user" class="font-semibold text-sm leading-tight">User</div>
+                    <div id="lb-time" class="text-xs text-white/55">Now</div>
+                </div>
+            </div>
+            <button onclick="closeLightbox()" class="text-white/70 hover:text-white hover:scale-110 transition-all">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Prev / Next Arrows -->
+    <button onclick="prevStatus(event)" class="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 items-center justify-center rounded-full bg-white/10 hover:bg-white/22 text-white backdrop-blur-sm transition-all z-20 border border-white/10">
+        <i class="fas fa-chevron-left text-lg"></i>
+    </button>
+    <button onclick="nextStatus(event)" class="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 items-center justify-center rounded-full bg-white/10 hover:bg-white/22 text-white backdrop-blur-sm transition-all z-20 border border-white/10">
+        <i class="fas fa-chevron-right text-lg"></i>
+    </button>
+
+    <!-- Media Container -->
+    <div class="relative w-full h-full flex items-center justify-center px-4 md:px-20" onclick="event.stopPropagation()">
+        <div id="lb-loader" class="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin-custom hidden"></div>
+        <img  id="lb-img"   class="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl hidden">
+        <video id="lb-video" class="max-w-full max-h-[85vh] rounded-xl shadow-2xl hidden" controls autoplay></video>
+    </div>
+
+    <!-- Mobile swipe hint -->
+    <div class="md:hidden absolute bottom-5 w-full text-center text-white/35 text-xs pointer-events-none">
+        Swipe left or right to navigate
+    </div>
+</div>
+
+<!-- ═══════════════ DATA + SCRIPT ═══════════════ -->
+<script id="status-data" type="application/json">{{ status_list | tojson }}</script>
+<script>
+    // ── State ──
+    const currentUser = "{{ username }}";
+    let statusMap = {};
+    try { statusMap = JSON.parse(document.getElementById('status-data').textContent || "{}"); } catch (_) {}
+
+    function inferMediaType(url = "") {
+        return /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url) ? "video" : "image";
+    }
+
+    function buildStatuses(map) {
+        const items = [];
+        Object.entries(map || {}).forEach(([user, value]) => {
+            const urls = Array.isArray(value) ? value : [value];
+            urls.filter(u => typeof u === "string" && u.trim()).forEach((url, idx) => {
+                items.push({ id: `${user}-${idx}-${url}`, user, avatar: (user[0] || "?").toUpperCase(), url, time: "Recent", type: inferMediaType(url) });
+            });
+        });
+        return items.reverse();
+    }
+
+    let statuses       = buildStatuses(statusMap);
+    let isSidebarOpen  = true;
+    let previewMedia   = null;
+    let selectedFile   = null;
+    let activeStatusIndex = null;
+    let viewedStatusIds   = new Set();
+    let progressTimer     = null;
+    let touchStartX = 0, touchEndX = 0;
+
+    // ── Boot ──
+    document.addEventListener('DOMContentLoaded', () => {
+        renderAll();
+        if (window.innerWidth < 768) { isSidebarOpen = false; updateSidebarUI(); }
+        document.addEventListener('keydown', e => {
+            if (activeStatusIndex !== null) {
+                if (e.key === 'Escape')      closeLightbox();
+                if (e.key === 'ArrowRight')  nextStatus();
+                if (e.key === 'ArrowLeft')   prevStatus();
+            } else {
+                if (e.key === 'Escape') closeUploadModal();
+            }
+        });
+        const lb = document.getElementById('lightbox');
+        lb.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
+        lb.addEventListener('touchend',   e => { touchEndX   = e.changedTouches[0].screenX; handleSwipe(); });
+    });
+
+    function renderAll() { renderGrid(); renderStories(); updateStats(); }
+
+    // ── Helpers ──
+    function esc(str) {
+        return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Stats banner ──
+    function updateStats() {
+        const uniqueUsers = new Set(statuses.map(s => s.user));
+        document.getElementById('stat-total').textContent   = statuses.length;
+        document.getElementById('stat-members').textContent = uniqueUsers.size;
+        document.getElementById('stat-unseen').textContent  = statuses.filter(s => !viewedStatusIds.has(s.id)).length;
+    }
+
+    // ── Stories strip ──
+    function renderStories() {
+        const strip = document.getElementById('stories-strip');
+        strip.innerHTML = '';
+
+        // "My Status" — add button
+        const addItem = document.createElement('div');
+        addItem.className = 'story-item';
+        addItem.onclick   = openUploadModal;
+        addItem.innerHTML = `
+            <div class="story-ring add-new">
+                <div class="story-avatar add-btn"><i class="fas fa-plus"></i></div>
+            </div>
+            <span class="story-name">My Status</span>
+        `;
+        strip.appendChild(addItem);
+
+        // One bubble per user (first status of that user)
+        const seen = new Map();
+        statuses.forEach((s, idx) => {
+            if (seen.has(s.user)) return;
+            seen.set(s.user, idx);
+            const isViewed = viewedStatusIds.has(s.id);
+            const isOwn    = s.user === currentUser;
+            const ringCls  = isOwn ? 'own' : (isViewed ? 'seen' : '');
+            const item     = document.createElement('div');
+            item.className = 'story-item';
+            item.onclick   = () => openLightbox(idx);
+            item.innerHTML = `
+                <div class="story-ring ${ringCls}">
+                    <div class="story-avatar">${esc(s.avatar)}</div>
+                </div>
+                <span class="story-name ${isViewed ? 'dim' : ''}">${esc(s.user)}</span>
+            `;
+            strip.appendChild(item);
+        });
+    }
+
+    // ── Status grid ──
+    function renderGrid() {
+        const grid       = document.getElementById('status-grid');
+        const emptyState = document.getElementById('empty-state');
+        grid.innerHTML   = '';
+
+        // "Add new" card (always first)
+        const addCard = document.createElement('div');
+        addCard.className = 'status-card-add animate-float-in';
+        addCard.onclick   = openUploadModal;
+        addCard.innerHTML = `
+            <div class="status-card-add-icon"><i class="fas fa-plus"></i></div>
+            <div class="status-card-add-label">Add Status</div>
+            <div class="status-card-add-sub">Photo or video</div>
+        `;
+        grid.appendChild(addCard);
+
+        if (statuses.length === 0) {
+            emptyState.classList.remove('hidden');
+        } else {
+            emptyState.classList.add('hidden');
+            statuses.forEach((s, i) => grid.appendChild(createStatusCard(s, i)));
+        }
+    }
+
+    function createStatusCard(status, index) {
+        const card      = document.createElement('div');
+        card.className  = 'status-card animate-float-in';
+        card.style.animationDelay = `${Math.min(index * 0.06, 0.6)}s`;
+        card.onclick    = () => openLightbox(index);
+
+        const isViewed  = viewedStatusIds.has(status.id);
+        const unseenDot = !isViewed ? '<div class="status-card-unseen-dot"></div>' : '';
+        const videoBadge = status.type === 'video'
+            ? '<div class="status-card-badge"><i class="fas fa-film" style="font-size:9px"></i> Video</div>'
+            : '';
+
+        const mediaHTML = status.type === 'video'
+            ? `<video src="${esc(status.url)}"
+                      class="absolute inset-0 w-full h-full object-cover"
+                      muted loop playsinline
+                      onmouseover="this.play()"
+                      onmouseout="this.pause();this.currentTime=0;"></video>`
+            : `<div class="skeleton-media" id="skel-${index}"></div>
+               <img src="${esc(status.url)}"
+                    class="absolute inset-0 w-full h-full object-cover opacity-0"
+                    style="transition:opacity 0.4s ease"
+                    onload="this.style.opacity='1'; const sk=document.getElementById('skel-${index}'); if(sk) sk.remove();"
+                    onerror="const sk=document.getElementById('skel-${index}'); if(sk) sk.style.animation='none';">`;
+
+        card.innerHTML = `
+            ${mediaHTML}
+            <div class="status-card-overlay"></div>
+            ${unseenDot}
+            ${videoBadge}
+            <div class="status-card-info">
+                <div class="status-card-avatar ${!isViewed ? 'unseen' : ''}">${esc(status.avatar)}</div>
+                <div class="status-card-text">
+                    <div class="status-card-user">${esc(status.user)}</div>
+                    <div class="status-card-time">${esc(status.time)}</div>
+                </div>
+            </div>
+        `;
+        return card;
+    }
+
+    // ── Sidebar ──
+    function toggleSidebar() { isSidebarOpen = !isSidebarOpen; updateSidebarUI(); }
+    function updateSidebarUI() {
+        const sidebar = document.getElementById('sidebar');
+        const main    = document.getElementById('main-content');
+        if (isSidebarOpen) {
+            sidebar.classList.remove('-translate-x-full');
+            main.classList.add('md:ml-60');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            main.classList.remove('md:ml-60');
+        }
+    }
+
+    // ── Upload modal ──
+    function openUploadModal()   { document.getElementById('upload-modal').classList.remove('hidden'); }
+    function closeUploadModal()  { document.getElementById('upload-modal').classList.add('hidden'); clearPreview(); }
+    function triggerFileSelect() { if (!previewMedia) document.getElementById('file-input').click(); }
+    function handleFileSelect(e) { processFile(e.target.files[0]); }
+
+    function processFile(file) {
+        if (!file) return;
+        if (file.size > 10 * 1024 * 1024) { alert("File size must be less than 10 MB"); return; }
+        selectedFile = file;
+        const reader = new FileReader();
+        reader.onload = e => {
+            previewMedia = { url: e.target.result, type: file.type.startsWith('video/') ? 'video' : 'image' };
+            showPreview();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function showPreview() {
+        document.getElementById('upload-placeholder').classList.add('hidden');
+        const container = document.getElementById('upload-preview-container');
+        const img       = document.getElementById('img-preview');
+        const video     = document.getElementById('video-preview');
+        const zone      = document.getElementById('upload-zone');
+        container.classList.remove('hidden');
+        zone.classList.remove('cursor-pointer', 'hover:border-[#ff5c00]', 'hover:bg-[#ff5c00]/5');
+        zone.classList.add('border-transparent', 'p-0');
+        if (previewMedia.type === 'video') { video.src = previewMedia.url; video.classList.remove('hidden'); img.classList.add('hidden'); }
+        else { img.src = previewMedia.url; img.classList.remove('hidden'); video.classList.add('hidden'); }
+        document.getElementById('btn-upload').disabled = false;
+    }
+
+    function clearPreview(e) {
+        if (e) e.stopPropagation();
+        previewMedia = null;
+        selectedFile = null;
+        document.getElementById('file-input').value = "";
+        document.getElementById('upload-placeholder').classList.remove('hidden');
+        document.getElementById('upload-preview-container').classList.add('hidden');
+        document.getElementById('btn-upload').disabled = true;
+        const zone = document.getElementById('upload-zone');
+        zone.classList.add('cursor-pointer', 'hover:border-[#ff5c00]', 'hover:bg-[#ff5c00]/5');
+        zone.classList.remove('border-transparent', 'p-0');
+    }
+
+    async function handleUpload() {
+        if (!previewMedia || !selectedFile) return;
+        const btn     = document.getElementById('btn-upload');
+        const btnText = document.getElementById('btn-text');
+        const spinner = document.getElementById('btn-spinner');
+        btn.disabled = true;
+        btnText.textContent = "Sharing…";
+        spinner.classList.remove('hidden');
+        try {
+            const fd = new FormData();
+            fd.append('file', selectedFile);
+            fd.append('username', currentUser);
+            const res = await fetch('/upload', { method: 'POST', body: fd, credentials: 'include' });
+            if (!res.ok) {
+                let msg = "Upload failed";
+                try { const err = await res.json(); msg = err.detail || msg; } catch (_) {}
+                throw new Error(msg);
+            }
+            const result    = await res.json();
+            const newStatus = {
+                id:     Date.now(),
+                user:   currentUser,
+                avatar: currentUser[0].toUpperCase(),
+                url:    result.url || previewMedia.url,
+                type:   inferMediaType(result.url || previewMedia.url),
+                time:   "Just now"
+            };
+            statuses = [newStatus, ...statuses];
+            renderAll();
+            closeUploadModal();
+        } catch (err) {
+            alert(`Upload failed: ${err.message}`);
+        } finally {
+            btn.disabled = false;
+            btnText.textContent = "Share";
+            spinner.classList.add('hidden');
+        }
+    }
+
+    function handleDragOver(e)  { e.preventDefault(); document.getElementById('upload-zone').classList.add('border-[#ff5c00]', 'bg-[#ff5c00]/5'); }
+    function handleDragLeave()  { document.getElementById('upload-zone').classList.remove('border-[#ff5c00]', 'bg-[#ff5c00]/5'); }
+    function handleDrop(e)      { e.preventDefault(); handleDragLeave(); if (e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]); }
+
+    // ── Lightbox ──
+    function openLightbox(index) {
+        activeStatusIndex = index;
+        markViewed(index);
+        updateLightboxContent();
+        const lb = document.getElementById('lightbox');
+        lb.classList.remove('hidden');
+        lb.classList.add('flex');
+    }
+
+    function closeLightbox() {
+        const lb = document.getElementById('lightbox');
+        lb.classList.add('hidden');
+        lb.classList.remove('flex');
+        activeStatusIndex = null;
+        clearProgress();
+        const vid = document.getElementById('lb-video');
+        vid.pause(); vid.src = "";
+        renderAll();
+    }
+
+    function markViewed(index) {
+        const s = statuses[index];
+        if (s) viewedStatusIds.add(s.id);
+    }
+
+    function updateLightboxContent() {
+        const status = statuses[activeStatusIndex];
+        if (!status) return;
+        markViewed(activeStatusIndex);
+        updateStats();
+
+        const img    = document.getElementById('lb-img');
+        const video  = document.getElementById('lb-video');
+        const loader = document.getElementById('lb-loader');
+
+        document.getElementById('lb-avatar').textContent = status.avatar;
+        document.getElementById('lb-user').textContent   = status.user;
+        document.getElementById('lb-time').textContent   = status.time;
+
+        renderProgressBars();
+        clearProgress();
+
+        if (status.type === 'video') {
+            loader.classList.add('hidden');
+            img.classList.add('hidden');
+            video.classList.remove('hidden');
+            video.src = status.url;
+            video.play().catch(() => {});
+            startProgress(16000);
+        } else {
+            video.classList.add('hidden');
+            video.pause(); video.src = "";
+            loader.classList.remove('hidden');
+            img.classList.remove('hidden');
+            img.style.opacity = '0';
+            img.onload = () => { loader.classList.add('hidden'); img.style.opacity = '1'; };
+            img.onerror = () => { loader.classList.add('hidden'); img.style.opacity = '1'; };
+            img.src = status.url;
+            startProgress(5000);
+        }
+    }
+
+    // ── Progress bars ──
+    function renderProgressBars() {
+        const container = document.getElementById('lb-progress-bars');
+        container.innerHTML = statuses.map((_, i) => {
+            const cls = i < activeStatusIndex ? 'lb-progress-fill done' : 'lb-progress-fill';
+            return `<div class="lb-progress-track"><div id="pb-${i}" class="${cls}"></div></div>`;
+        }).join('');
+    }
+
+    function startProgress(duration) {
+        const fill = document.getElementById(`pb-${activeStatusIndex}`);
+        if (fill) {
+            fill.style.transition = `width ${duration}ms linear`;
+            // Small delay so browser registers the transition
+            requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = '100%'; }));
+        }
+        progressTimer = setTimeout(() => nextStatus(), duration);
+    }
+
+    function clearProgress() {
+        if (progressTimer) { clearTimeout(progressTimer); progressTimer = null; }
+    }
+
+    function nextStatus(e) {
+        if (e) e.stopPropagation();
+        if (activeStatusIndex === null) return;
+        clearProgress();
+        if (activeStatusIndex >= statuses.length - 1) { closeLightbox(); return; }
+        activeStatusIndex++;
+        markViewed(activeStatusIndex);
+        updateLightboxContent();
+    }
+
+    function prevStatus(e) {
+        if (e) e.stopPropagation();
+        if (activeStatusIndex === null) return;
+        clearProgress();
+        activeStatusIndex = Math.max(0, activeStatusIndex - 1);
+        updateLightboxContent();
+    }
+
+    function handleSwipe() {
+        const dist = touchStartX - touchEndX;
+        if (Math.abs(dist) > 50) { dist > 0 ? nextStatus() : prevStatus(); }
+    }
+</script>
+</body>
+</html>

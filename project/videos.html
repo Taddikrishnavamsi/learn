@@ -1,0 +1,759 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FamilyTube Videos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --ink: #1b1813;
+            --muted: #6d6357;
+            --paper: #ffffff;
+            --cream: #f7f1e8;
+            --sand: #f1e6d7;
+            --accent: #ff5c00;
+            --accent-light: #ff8f66;
+            --stroke: #eadfce;
+            --shadow-sm: 0 4px 14px rgba(20, 16, 10, 0.08);
+            --shadow: 0 16px 40px rgba(20, 16, 10, 0.14);
+            --radius: 18px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Manrope', system-ui, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(1200px 600px at 10% -10%, #ffe9d6, transparent 55%),
+                radial-gradient(900px 520px at 90% -20%, #d8efff, transparent 60%),
+                var(--cream);
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .font-grotesk { font-family: 'Space Grotesk', sans-serif; }
+
+        /* ── Animations ── */
+        @keyframes floatIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes shimmer {
+            0%   { background-position: -200% 0; }
+            100% { background-position:  200% 0; }
+        }
+        .animate-float-in    { animation: floatIn 0.5s ease both; }
+        .animate-spin-custom { animation: spin 1s linear infinite; }
+
+        /* ── Sidebar ── */
+        #sidebar      { transition: transform 0.3s ease; }
+        #main-content { transition: margin-left 0.3s ease; }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 11px 14px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--ink);
+            font-size: 14px;
+            margin-bottom: 6px;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .sidebar-link:hover  { background: rgba(255,92,0,0.08); transform: translateX(4px); }
+        .sidebar-link.active { background: rgba(255,92,0,0.12); font-weight: 700; }
+        .sidebar-link i { margin-right: 18px; font-size: 18px; width: 20px; text-align: center; color: var(--accent); }
+
+        /* ── Page hero ── */
+        .page-hero {
+            background: linear-gradient(135deg, rgba(255,92,0,0.05) 0%, rgba(255,255,255,0.82) 55%, rgba(216,239,255,0.25) 100%);
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius);
+            padding: 20px 26px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            backdrop-filter: blur(8px);
+            margin-bottom: 28px;
+        }
+        .page-hero-stats { display: flex; align-items: center; }
+        .page-hero-stat {
+            text-align: center;
+            padding: 0 18px;
+            border-left: 1px solid var(--stroke);
+        }
+        .page-hero-stat:first-child { border-left: none; padding-left: 0; }
+        .page-hero-stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--accent);
+            line-height: 1;
+        }
+        .page-hero-stat-label {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-top: 3px;
+        }
+
+        /* ── Section label ── */
+        .section-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .section-label h2 {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            margin: 0;
+        }
+        .section-label::after { content: ''; flex: 1; height: 1px; background: var(--stroke); }
+
+        /* ── Video card ── */
+        .video-card {
+            background: var(--paper);
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .video-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
+
+        .video-thumb {
+            position: relative;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            background: #1a1510;
+        }
+        .thumb-img {
+            width: 100%; height: 100%;
+            object-fit: cover; display: block;
+            transition: transform 0.55s ease;
+        }
+        .video-card:hover .thumb-img { transform: scale(1.04); }
+
+        /* Play overlay */
+        .thumb-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to top, rgba(10,7,3,0.6) 0%, rgba(10,7,3,0.05) 50%, transparent 75%);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        .video-card:hover .thumb-overlay { opacity: 1; }
+
+        .play-btn {
+            width: 54px; height: 54px;
+            border-radius: 50%;
+            background: rgba(255, 92, 0, 0.92);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 18px;
+            box-shadow: 0 8px 24px rgba(255,92,0,0.5);
+            transform: scale(0.88);
+            transition: transform 0.3s ease;
+        }
+        .video-card:hover .play-btn { transform: scale(1); }
+
+        /* Badges */
+        .video-type-badge {
+            position: absolute; top: 10px; left: 10px;
+            background: rgba(0,0,0,0.58);
+            backdrop-filter: blur(5px);
+            color: white; font-size: 10px; font-weight: 700;
+            padding: 3px 9px; border-radius: 999px;
+            display: flex; align-items: center; gap: 4px;
+            z-index: 2;
+        }
+        .video-type-badge.yt { background: rgba(200, 20, 20, 0.78); }
+
+        /* Skeleton shimmer */
+        .thumb-skeleton {
+            position: absolute; inset: 0;
+            background: linear-gradient(90deg, #e8ddd2 25%, #d8cfc4 50%, #e8ddd2 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+        }
+
+        /* Card info row */
+        .video-info {
+            padding: 13px 14px;
+            display: flex; align-items: flex-start; gap: 10px;
+        }
+        .video-avatar {
+            width: 34px; height: 34px;
+            border-radius: 50%; flex-shrink: 0;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 700; font-size: 13px;
+            margin-top: 1px;
+        }
+        .video-meta { flex: 1; min-width: 0; }
+        .video-title {
+            font-weight: 700; font-size: 13px; line-height: 1.4;
+            color: var(--ink); margin-bottom: 3px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .video-sub { font-size: 11px; color: var(--muted); }
+
+        /* ── Upload Modal ── */
+        .upload-modal {
+            position: fixed; inset: 0; z-index: 50;
+            background: rgba(0,0,0,0.62);
+            backdrop-filter: blur(6px);
+            display: none; align-items: center; justify-content: center; padding: 16px;
+        }
+        .upload-modal.open { display: flex; }
+
+        .upload-modal-card {
+            background: var(--paper);
+            width: min(520px, 100%);
+            border-radius: 24px; overflow: hidden;
+            border: 1px solid var(--stroke);
+            box-shadow: var(--shadow);
+        }
+        .upload-modal-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--stroke);
+            display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+        }
+        .upload-modal-body { padding: 20px 24px 24px; }
+
+        .upload-close-btn {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: var(--sand); border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--muted); flex-shrink: 0;
+            transition: background 0.2s, color 0.2s;
+        }
+        .upload-close-btn:hover { background: var(--stroke); color: var(--ink); }
+
+        .file-picker {
+            border: 2px dashed var(--stroke);
+            border-radius: 14px;
+            background: linear-gradient(160deg, #fffdf9, #ffffff);
+            padding: 15px 16px;
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+            cursor: pointer; margin-bottom: 14px;
+            transition: border-color 0.2s, background 0.2s, transform 0.2s;
+        }
+        .file-picker:hover {
+            border-color: var(--accent);
+            background: rgba(255,92,0,0.025);
+            transform: translateY(-1px);
+        }
+        .file-picker strong { display: block; font-size: 14px; margin-bottom: 2px; }
+        .file-picker span   { color: var(--muted); font-size: 12px; }
+        .file-chip {
+            background: var(--sand); border: 1px solid var(--stroke);
+            border-radius: 8px; padding: 5px 10px;
+            min-width: 110px; max-width: 160px;
+            font-size: 11px; color: var(--muted);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right;
+        }
+
+        .form-label  { display: block; font-size: 12px; font-weight: 700; color: #3c3228; margin-bottom: 5px; }
+        .form-input  {
+            width: 100%; border: 1.5px solid var(--stroke); border-radius: 10px;
+            padding: 10px 13px; font-size: 14px; font-family: 'Manrope', sans-serif;
+            background: white; color: var(--ink); outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,92,0,0.09); }
+
+        .form-divider {
+            display: flex; align-items: center; gap: 10px;
+            margin: 14px 0; font-size: 11px; font-weight: 700;
+            color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
+        }
+        .form-divider::before, .form-divider::after { content: ''; flex: 1; height: 1px; background: var(--stroke); }
+
+        .upload-notice {
+            font-size: 12px; padding: 9px 12px;
+            border-radius: 10px; margin-top: 14px;
+            border: 1px solid var(--stroke);
+        }
+        .upload-notice.info    { color: var(--muted); background: white; }
+        .upload-notice.success { color: #245c3c; background: #ecfff2; border-color: #c9efd7; }
+        .upload-notice.error   { color: #c62828; background: #fff1f1; border-color: #f4c9c9; }
+
+        .yt-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: rgba(255,92,0,0.1); color: var(--accent);
+            border: 1px solid rgba(255,92,0,0.2);
+            border-radius: 999px; font-size: 11px; font-weight: 700; padding: 4px 10px;
+        }
+
+        /* ── Video Lightbox ── */
+        #video-lightbox {
+            position: fixed; inset: 0; z-index: 60;
+            background: rgba(7,5,2,0.97);
+            display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        #video-lightbox.open { display: flex; }
+
+        #vl-inner {
+            position: relative;
+            width: min(960px, 100%);
+            animation: floatIn 0.35s ease;
+        }
+        #vl-close-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px;
+        }
+        #vl-close {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.14);
+            color: white; border-radius: 999px; padding: 6px 14px;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+            transition: background 0.2s; font-family: 'Manrope', sans-serif;
+        }
+        #vl-close:hover { background: rgba(255,255,255,0.18); }
+        #vl-label {
+            font-size: 13px; color: rgba(255,255,255,0.5);
+            font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+        }
+        #vl-video-container {
+            aspect-ratio: 16 / 9; width: 100%;
+            border-radius: 14px; overflow: hidden; background: black;
+        }
+        #vl-video-container iframe,
+        #vl-video-container video { width: 100%; height: 100%; border: none; display: block; }
+        #vl-footer { margin-top: 14px; }
+        #vl-title { color: white; font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+        #vl-sub   { color: rgba(255,255,255,0.45); font-size: 13px; }
+
+        /* ── Empty state ── */
+        #empty-state { animation: floatIn 0.5s ease both; }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .page-hero { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="fixed top-0 w-full h-16 flex justify-between items-center px-4 md:px-6 bg-white/90 backdrop-blur-md z-50 border-b border-[#eadfce]/60">
+    <div class="flex items-center gap-4">
+        <button onclick="toggleSidebar()" class="p-2 hover:bg-black/5 rounded-full transition-colors" aria-label="Toggle sidebar">
+            <i class="fas fa-bars text-lg"></i>
+        </button>
+        <div class="flex items-center gap-2 font-bold text-xl tracking-tight font-grotesk">
+            <i class="fab fa-youtube text-[#ff5c00] text-2xl"></i>
+            <span>FamilyTube</span>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+        <button onclick="openUploadModal()" class="hidden sm:flex items-center gap-2 bg-[#ff5c00] text-white px-5 py-2.5 rounded-full font-semibold hover:-translate-y-0.5 shadow-lg shadow-orange-500/20 transition-all">
+            <i class="fas fa-upload text-sm"></i>
+            <span>Upload Video</span>
+        </button>
+        <div class="flex items-center gap-2 bg-white border border-[#eadfce] px-4 py-2 rounded-full font-semibold shadow-sm">
+            <i class="far fa-user-circle text-lg text-[#6d6357]"></i>
+            <span>{{ username }}</span>
+        </div>
+        <button onclick="window.location.href='/logout'" class="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors" aria-label="Logout">
+            <i class="fas fa-sign-out-alt text-lg"></i>
+        </button>
+    </div>
+</header>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<nav id="sidebar" class="fixed top-16 left-0 h-[calc(100vh-64px)] w-[240px] bg-white/95 border-r border-[#eadfce]/70 p-[14px] z-40 overflow-y-auto transform translate-x-0">
+    <div class="space-y-1">
+        <a href="/index"  class="sidebar-link"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="#"       class="sidebar-link"><i class="fas fa-fire"></i><span>Trending</span></a>
+        <a href="/chat"   class="sidebar-link"><i class="fas fa-comment-dots"></i><span>Chats</span></a>
+        <a href="/videos" class="sidebar-link active"><i class="fas fa-play-circle"></i><span>Videos</span></a>
+        <a href="#"       class="sidebar-link"><i class="fas fa-user-friends"></i><span>Profiles</span></a>
+        <a href="#"       class="sidebar-link"><i class="fas fa-plane"></i><span>Trips</span></a>
+        <a href="/status" class="sidebar-link"><i class="fas fa-history"></i><span>Status</span></a>
+        <div class="my-3 border-t border-[#eadfce]"></div>
+        <a href="#"       class="sidebar-link"><i class="fas fa-cog"></i><span>Settings</span></a>
+    </div>
+</nav>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main id="main-content" class="pt-24 px-4 pb-10 md:px-8 min-h-screen md:ml-60">
+
+    <!-- Hero banner -->
+    <div class="page-hero animate-float-in">
+        <div>
+            <h1 class="text-2xl font-bold font-grotesk mb-0.5">Family Videos</h1>
+            <p class="text-[#6d6357] text-sm">Upload and share memorable moments with your family</p>
+        </div>
+        <div class="page-hero-stats">
+            <div class="page-hero-stat">
+                <div id="stat-total" class="page-hero-stat-value">0</div>
+                <div class="page-hero-stat-label">Videos</div>
+            </div>
+            <div class="page-hero-stat">
+                <div id="stat-yt" class="page-hero-stat-value">0</div>
+                <div class="page-hero-stat-label">YouTube</div>
+            </div>
+            <div class="page-hero-stat">
+                <div id="stat-direct" class="page-hero-stat-value">0</div>
+                <div class="page-hero-stat-label">Uploaded</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile upload button -->
+    <button onclick="openUploadModal()" class="sm:hidden w-full flex items-center justify-center gap-2 bg-[#ff5c00] text-white px-5 py-3 rounded-full font-semibold shadow-lg shadow-orange-500/20 mb-6">
+        <i class="fas fa-upload text-sm"></i>
+        <span>Upload Video</span>
+    </button>
+
+    <!-- Section label -->
+    <div class="section-label"><h2>Videos</h2></div>
+
+    <!-- Video grid -->
+    <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="text-center py-20 hidden">
+        <div class="w-20 h-20 rounded-full bg-[#f1e6d7] flex items-center justify-center mx-auto mb-5 shadow-sm">
+            <i class="fas fa-film text-3xl text-[#ff5c00]"></i>
+        </div>
+        <h3 class="text-xl font-bold mb-2 text-[#1b1813] font-grotesk">No Videos Yet</h3>
+        <p class="text-[#6d6357] mb-6 text-sm">Upload your first video to share with your family!</p>
+        <button onclick="openUploadModal()" class="inline-flex items-center gap-2 bg-[#ff5c00] text-white px-6 py-3 rounded-full font-semibold shadow-lg shadow-orange-500/20 hover:-translate-y-0.5 transition-all">
+            <i class="fas fa-upload text-sm"></i> Upload First Video
+        </button>
+    </div>
+</main>
+
+<!-- ═══════════════ UPLOAD MODAL ═══════════════ -->
+<div id="upload-modal" class="upload-modal">
+    <div class="upload-modal-card animate-float-in">
+
+        <!-- Header -->
+        <div class="upload-modal-header">
+            <div>
+                <h2 class="text-xl font-bold font-grotesk leading-tight">Upload a Video</h2>
+                <p class="text-xs text-[#6d6357] mt-1">Share a clip or link with your family feed</p>
+            </div>
+            <div class="flex items-center gap-2 mt-0.5 flex-shrink-0">
+                <span class="yt-badge"><i class="fab fa-youtube text-xs"></i> YouTube OK</span>
+                <button class="upload-close-btn" onclick="closeUploadModal()" aria-label="Close">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="upload-modal-body">
+            <form id="video-upload-form">
+
+                <!-- File picker -->
+                <input type="file" id="video-file" name="file" accept="video/*" class="hidden">
+                <label for="video-file" class="file-picker">
+                    <div>
+                        <strong><i class="fas fa-cloud-upload-alt" style="color:var(--accent)"></i> Select a Video File</strong>
+                        <span>Click to choose a video from your device</span>
+                    </div>
+                    <div id="selected-file-name" class="file-chip">No file chosen</div>
+                </label>
+
+                <!-- Divider -->
+                <div class="form-divider">or</div>
+
+                <!-- URL -->
+                <div class="mb-4">
+                    <label class="form-label" for="video-url">
+                        Video URL &nbsp;<span class="font-normal text-[#6d6357]">(YouTube or direct link)</span>
+                    </label>
+                    <input type="text" id="video-url" class="form-input" placeholder="https://youtube.com/watch?v=... or video.mp4">
+                </div>
+
+                <!-- Description -->
+                <div class="mb-5">
+                    <label class="form-label" for="video-description">
+                        Description <span class="text-red-400">*</span>
+                    </label>
+                    <input type="text" id="video-description" class="form-input" placeholder="e.g. Evening walk at the park">
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeUploadModal()"
+                            class="flex-1 px-4 py-3 rounded-full font-semibold text-[#1b1813] bg-[#f1e6d7] hover:bg-[#eadfce] transition-colors text-sm">
+                        Cancel
+                    </button>
+                    <button id="upload-btn" type="submit"
+                            class="flex-1 px-4 py-3 rounded-full font-semibold text-white bg-[#ff5c00] hover:bg-[#e65200] disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-orange-500/20 hover:-translate-y-0.5 transition-all text-sm flex items-center justify-center gap-2">
+                        <i class="fas fa-upload text-xs"></i>
+                        <span id="upload-btn-text">Upload</span>
+                    </button>
+                </div>
+
+                <div id="upload-notice" class="upload-notice info">
+                    Pick a file <em>or</em> paste a URL — not both. Descriptions must be unique per user.
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ VIDEO LIGHTBOX ═══════════════ -->
+<div id="video-lightbox" onclick="closeVideoLightbox()">
+    <div id="vl-inner" onclick="event.stopPropagation()">
+        <div id="vl-close-row">
+            <span id="vl-label">Now Playing</span>
+            <button id="vl-close" onclick="closeVideoLightbox()">
+                <i class="fas fa-times"></i> Close
+            </button>
+        </div>
+        <div id="vl-video-container"></div>
+        <div id="vl-footer">
+            <div id="vl-title"></div>
+            <div id="vl-sub"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ SCRIPT ═══════════════ -->
+<script>
+    const username    = "{{ username }}";
+    let isSidebarOpen = true;
+    let allVideos     = [];
+
+    // ── Sidebar ──
+    function toggleSidebar() { isSidebarOpen = !isSidebarOpen; updateSidebarUI(); }
+    function updateSidebarUI() {
+        const sidebar = document.getElementById('sidebar');
+        const main    = document.getElementById('main-content');
+        if (isSidebarOpen) {
+            sidebar.classList.remove('-translate-x-full');
+            main.classList.add('md:ml-60');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            main.classList.remove('md:ml-60');
+        }
+    }
+    if (window.innerWidth < 768) { isSidebarOpen = false; updateSidebarUI(); }
+
+    // ── Upload modal ──
+    function openUploadModal()  { document.getElementById('upload-modal').classList.add('open'); }
+    function closeUploadModal() {
+        document.getElementById('upload-modal').classList.remove('open');
+        setNotice('Pick a file <em>or</em> paste a URL — not both. Descriptions must be unique per user.', 'info');
+    }
+
+    // ── YouTube helpers ──
+    function getYouTubeId(url) {
+        try {
+            const p    = new URL(url);
+            const host = p.hostname.replace(/^www\./i, '').toLowerCase();
+            if (host === 'youtube.com' || host === 'm.youtube.com') return p.searchParams.get('v');
+            if (host === 'youtu.be') return p.pathname.slice(1);
+        } catch (_) {}
+        return null;
+    }
+    function getYouTubeEmbed(url) {
+        const id = getYouTubeId(url);
+        return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    function isDirectVideo(url) { return /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url); }
+
+    function esc(str) {
+        return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Stats ──
+    function updateStats() {
+        const ytCount     = allVideos.filter(v => !!getYouTubeId(v.url)).length;
+        const directCount = allVideos.length - ytCount;
+        document.getElementById('stat-total').textContent  = allVideos.length;
+        document.getElementById('stat-yt').textContent     = ytCount;
+        document.getElementById('stat-direct').textContent = directCount;
+    }
+
+    // ── Render grid ──
+    function renderVideos(videos) {
+        allVideos = Array.isArray(videos) ? videos : [];
+        const grid       = document.getElementById('video-grid');
+        const emptyState = document.getElementById('empty-state');
+
+        updateStats();
+
+        if (allVideos.length === 0) {
+            grid.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            return;
+        }
+        emptyState.classList.add('hidden');
+        grid.innerHTML = '';
+        allVideos.forEach((video, i) => grid.appendChild(createVideoCard(video, i)));
+    }
+
+    function createVideoCard(video, index) {
+        const card       = document.createElement('article');
+        card.className   = 'video-card animate-float-in';
+        card.style.animationDelay = `${Math.min(index * 0.07, 0.5)}s`;
+
+        const ytId     = getYouTubeId(video.url);
+        const isYT     = !!ytId;
+        const initial  = username[0] ? username[0].toUpperCase() : '?';
+
+        let thumbContent = '';
+        let badgeHTML    = '';
+
+        if (isYT) {
+            const thumbSrc = `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`;
+            thumbContent = `
+                <div class="thumb-skeleton" id="sk-${index}"></div>
+                <img class="thumb-img" src="${esc(thumbSrc)}" alt="${esc(video.description)}"
+                     onload="const sk=document.getElementById('sk-${index}');if(sk)sk.remove();"
+                     onerror="const sk=document.getElementById('sk-${index}');if(sk){sk.style.animation='none';sk.style.background='#ddd7ce';}this.style.display='none';">
+            `;
+            badgeHTML = `<div class="video-type-badge yt"><i class="fab fa-youtube" style="font-size:9px"></i> YouTube</div>`;
+        } else {
+            thumbContent = `
+                <video class="thumb-img" src="${esc(video.url)}" muted preload="metadata" style="object-fit:cover"></video>
+            `;
+            badgeHTML = `<div class="video-type-badge"><i class="fas fa-film" style="font-size:9px"></i> Video</div>`;
+        }
+
+        card.innerHTML = `
+            <div class="video-thumb">
+                ${thumbContent}
+                <div class="thumb-overlay">
+                    <div class="play-btn"><i class="fas fa-play" style="margin-left:3px"></i></div>
+                </div>
+                ${badgeHTML}
+            </div>
+            <div class="video-info">
+                <div class="video-avatar">${esc(initial)}</div>
+                <div class="video-meta">
+                    <div class="video-title">${esc(video.description || 'Untitled')}</div>
+                    <div class="video-sub">${esc(username)} &bull; Recent</div>
+                </div>
+            </div>
+        `;
+
+        card.onclick = () => openVideoLightbox(video);
+        return card;
+    }
+
+    // ── Video lightbox ──
+    function openVideoLightbox(video) {
+        const lightbox  = document.getElementById('video-lightbox');
+        const container = document.getElementById('vl-video-container');
+        const titleEl   = document.getElementById('vl-title');
+        const subEl     = document.getElementById('vl-sub');
+
+        const embedUrl = getYouTubeEmbed(video.url);
+        if (embedUrl) {
+            container.innerHTML = `<iframe src="${esc(embedUrl)}?autoplay=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+        } else {
+            container.innerHTML = `<video src="${esc(video.url)}" controls autoplay style="background:#000"></video>`;
+        }
+
+        titleEl.textContent = video.description || 'Untitled';
+        subEl.textContent   = `${username} \u00B7 Recent`;
+        lightbox.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeVideoLightbox() {
+        const lightbox  = document.getElementById('video-lightbox');
+        const container = document.getElementById('vl-video-container');
+        lightbox.classList.remove('open');
+        container.innerHTML = '';
+        document.body.style.overflow = '';
+    }
+
+    // ── Keyboard ──
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { closeVideoLightbox(); closeUploadModal(); }
+    });
+
+    // ── Upload form ──
+    document.getElementById('video-file').addEventListener('change', function () {
+        const name = this.files[0] ? this.files[0].name : 'No file chosen';
+        document.getElementById('selected-file-name').textContent = name;
+    });
+
+    document.getElementById('video-upload-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const fileInput = document.getElementById('video-file');
+        const urlInput  = document.getElementById('video-url');
+        const descInput = document.getElementById('video-description');
+        const btn       = document.getElementById('upload-btn');
+        const btnText   = document.getElementById('upload-btn-text');
+
+        const file     = fileInput.files[0];
+        const videoUrl = urlInput.value.trim();
+        const desc     = descInput.value.trim();
+
+        if (!file && !videoUrl) { setNotice('Please select a file or enter a video URL.', 'error'); return; }
+        if (file && videoUrl)   { setNotice('Choose either a file or a URL — not both.', 'error'); return; }
+        if (!desc)              { setNotice('Please enter a description.', 'error'); return; }
+
+        btn.disabled  = true;
+        btnText.textContent = 'Uploading…';
+        setNotice('Uploading your video…', 'info');
+
+        try {
+            const fd = new FormData();
+            fd.append('username',    username);
+            fd.append('description', desc);
+            fd.append('video_url',   videoUrl || 'none');
+            if (file) fd.append('file', file);
+
+            const res      = await fetch('/upload_video', { method: 'POST', body: fd });
+            const rawBody  = await res.text();
+            let data = null;
+            try { data = rawBody ? JSON.parse(rawBody) : {}; } catch (_) {}
+
+            if (!res.ok) {
+                const msg = (data && data.detail) ? data.detail : `Upload failed (${res.status})`;
+                throw new Error(msg);
+            }
+
+            const userVideos = (data.video_list && data.video_list[username]) || [];
+            renderVideos(userVideos);
+            setNotice('Video uploaded successfully!', 'success');
+            this.reset();
+            document.getElementById('selected-file-name').textContent = 'No file chosen';
+            setTimeout(closeUploadModal, 1400);
+        } catch (err) {
+            setNotice(err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btnText.textContent = 'Upload';
+        }
+    });
+
+    function setNotice(html, type) {
+        const el   = document.getElementById('upload-notice');
+        el.innerHTML   = html;
+        el.className   = 'upload-notice ' + type;
+    }
+
+    // ── Initial render ──
+    renderVideos([]);
+</script>
+</body>
+</html>
