@@ -222,12 +222,11 @@ async def upload_video(
 
 # upload status to online
 # Use absolute credentials path so uploads work regardless of launch directory.
-creds_file = BASE_DIR / "service-account.json"
-if creds_file.exists():
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(creds_file)
-else:
-    print("Warning: service-account.json not found at", creds_file)
-
+# creds_file = BASE_DIR / "service-account.json"if creds_file.exists():
+    # os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(creds_file)
+# else:
+    # print("Warning: service-account.json not found at", creds_file)
+# 
 
 
 
