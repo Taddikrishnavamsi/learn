@@ -2,5 +2,7 @@ fastapi
 uvicorn[standard]
 jinja2
 python-multipart
-google-cloud-storage
 itsdangerous
+google-cloud-storage
+google-cloud-firestore
+google-cloud-logging
