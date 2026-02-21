@@ -21,6 +21,11 @@ templates = Jinja2Templates(directory=str(BASE_DIR))
 
 app.mount("/photos", StaticFiles(directory=str(BASE_DIR / "photos")), name="photos")
 
+creds_file = BASE_DIR / "service-account.json"if creds_file.exists():
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(creds_file)
+else:
+    print("Warning: service-account.json not found at", creds_file)
+
 # Active WebSocket users
 ws_users = {}
 
@@ -222,11 +227,7 @@ async def upload_video(
 
 # upload status to online
 # Use absolute credentials path so uploads work regardless of launch directory.
-# creds_file = BASE_DIR / "service-account.json"if creds_file.exists():
-    # os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(creds_file)
-# else:
-    # print("Warning: service-account.json not found at", creds_file)
-# 
+
 
 
 
