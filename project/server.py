@@ -44,6 +44,7 @@ def verify(token: str):
   return PlainTextResponse(token)
 ws_users = {}
 
+
 # Load user phone numbers
 userph = {}
 with open(BASE_DIR / "users.json", "r", encoding="utf-8") as f:
