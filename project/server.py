@@ -37,7 +37,7 @@ app.mount("/photos", StaticFiles(directory=str(BASE_DIR / "photos")), name="phot
 @app.get("/loaderio-{token}.txt")
 @app.get("/loaderio-{token}.html")
 def verify(token: str):
-    token_value = f"loaderio-{token}"
+    token_value = token
     token_path = BASE_DIR / f"{token_value}.txt"
     if token_path.exists():
         return PlainTextResponse(token_path.read_text(encoding="utf-8").strip())
