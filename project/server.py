@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form, Request, UploadFile, File, HTTPException
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, PlainTextResponse
 from fastapi.templating import Jinja2Templates
 from google.cloud import storage
 import os
@@ -36,7 +36,7 @@ app.mount("/photos", StaticFiles(directory=str(BASE_DIR / "photos")), name="phot
 
 @app.get("/loaderio-5936389fec76eea26abea21ab2a63028.txt")
 def verify():
-    return "loaderio-5936389fec76eea26abea21ab2a63028"
+    return PlainTextResponse("loaderio-5936389fec76eea26abea21ab2a63028")
 
 ws_users = {}
 
