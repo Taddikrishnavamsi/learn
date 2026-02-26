@@ -34,14 +34,6 @@ else:
 
 app.mount("/photos", StaticFiles(directory=str(BASE_DIR / "photos")), name="photos")
 
-@app.get("/loaderio-{token}.txt")
-@app.get("/loaderio-{token}.html")
-def verify(token: str):
-    token_value = token
-    token_path = BASE_DIR / f"{token_value}.txt"
-    if token_path.exists():
-        return PlainTextResponse(token_path.read_text(encoding="utf-8").strip())
-  return PlainTextResponse(token)
 ws_users = {}
 
 
