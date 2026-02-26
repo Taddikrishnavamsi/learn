@@ -34,6 +34,9 @@ else:
 
 app.mount("/photos", StaticFiles(directory=str(BASE_DIR / "photos")), name="photos")
 
+@app.get("/loaderio-5936389fec76eea26abea21ab2a63028.txt")
+def verify():
+    return "loaderio-abc123def456"
 
 ws_users = {}
 
