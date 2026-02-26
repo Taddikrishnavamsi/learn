@@ -41,8 +41,7 @@ def verify(token: str):
     token_path = BASE_DIR / f"{token_value}.txt"
     if token_path.exists():
         return PlainTextResponse(token_path.read_text(encoding="utf-8").strip())
-    return PlainTextResponse(token_value)
-
+ return PlainTextResponse(token)
 ws_users = {}
 
 # Load user phone numbers
