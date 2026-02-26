@@ -18,10 +18,23 @@ logger = logging.getLogger("uvicorn.error")
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR))
 
+# Setup Google Cloud credentials for Railway
+if os.getenv("RAILWAY_ENVIRONMENT"):
+    service_account_json = os.getenv("service-account")
+    if service_account_json:
+        creds_path = BASE_DIR / "service-account-temp.json"
+        creds_path.write_text(service_account_json)
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(creds_path)
+else:
+    # Local development
+    creds_path = BASE_DIR / "service-account.json"
+    if creds_path.exists():
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(creds_path)
+
 
 app.mount("/photos", StaticFiles(directory=str(BASE_DIR / "photos")), name="photos")
 
-# Active WebSocket users
+
 ws_users = {}
 
 # Load user phone numbers
@@ -222,11 +235,6 @@ async def upload_video(
 
 # upload status to online
 # Use absolute credentials path so uploads work regardless of launch directory.
-creds_file = BASE_DIR / "service-account.json"
-if creds_file.exists():
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(creds_file)
-else:
-    print("Warning: service-account.json not found at", creds_file)
 
 
 
