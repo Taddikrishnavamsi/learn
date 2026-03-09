@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>FamilyTube Status</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -55,6 +55,43 @@
         /* ── Sidebar ── */
         #sidebar      { transition: transform 0.3s ease; }
         #main-content { transition: margin-left 0.3s ease; }
+
+        /* ── Mobile Bottom Nav ── */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: calc(60px + env(safe-area-inset-bottom));
+            padding-bottom: env(safe-area-inset-bottom);
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--stroke);
+            justify-content: space-around;
+            align-items: flex-start;
+            z-index: 500;
+            box-shadow: 0 -4px 20px rgba(0,0,0,.06);
+        }
+        .bn-item {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 3px; flex: 1;
+            padding: 10px 4px 0;
+            text-decoration: none;
+            color: var(--muted);
+            font-weight: 600;
+            font-family: 'Manrope', sans-serif;
+            transition: color .18s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bn-item i { font-size: 20px; transition: transform .2s; }
+        .bn-item span { font-size: 9.5px; }
+        .bn-item.active { color: var(--accent); }
+        .bn-item:active i { transform: scale(.85); }
+        @media (max-width: 768px) {
+            .bottom-nav { display: flex; }
+            #main-content { padding-bottom: calc(76px + env(safe-area-inset-bottom)) !important; }
+        }
 
         .sidebar-link {
             display: flex;
@@ -425,6 +462,15 @@
         <div class="my-3 border-t border-[#eadfce]"></div>
         <a href="#"       class="sidebar-link"><i class="fas fa-cog"></i><span>Settings</span></a>
     </div>
+</nav>
+
+<!-- ── Mobile Bottom Nav ── -->
+<nav class="bottom-nav">
+    <a href="/index"  class="bn-item" aria-label="Home"><i class="fas fa-home"></i><span>Home</span></a>
+    <a href="/videos" class="bn-item" aria-label="Videos"><i class="fas fa-play-circle"></i><span>Videos</span></a>
+    <a href="/chat"   class="bn-item" aria-label="Chat"><i class="fas fa-comment-dots"></i><span>Chat</span></a>
+    <a href="/status" class="bn-item active" aria-label="Status"><i class="fas fa-history"></i><span>Status</span></a>
+    <a href="#"       class="bn-item" aria-label="Profile"><i class="fas fa-user"></i><span>Me</span></a>
 </nav>
 
 <!-- ═══════════════ MAIN CONTENT ═══════════════ -->

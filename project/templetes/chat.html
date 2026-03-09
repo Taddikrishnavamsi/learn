@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>FamilyTube Chat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root{
+            --green-900:#075e54;--green-700:#128c7e;--green-500:#25d366;
+            --bg:#e5ddd5;--panel:#f0f2f5;--paper:#fff;--sent:#dcf8c6;--recv:#fff;
+            --line:#d4dbe0;--ink:#111b21;--muted:#667781;--shadow:0 10px 34px rgba(17,27,33,.16);
+        }
+        *{box-sizing:border-box}
+        html,body{margin:0;padding:0;height:100%;width:100%}
+        body{font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;color:var(--ink);background:#d5dbde}
+        .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+        .app{width:min(1200px,100vw);height:100dvh;margin:0 auto;display:grid;grid-template-columns:360px 1fr;background:var(--panel);box-shadow:var(--shadow);overflow:hidden}
+        .list{display:flex;flex-direction:column;min-height:0;background:var(--paper);border-right:1px solid var(--line)}
+        .list-top{min-height:74px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(180deg,var(--green-900),var(--green-700));color:#fff}
+        .profile{display:flex;align-items:center;gap:10px;min-width:0}
+        .profile img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.5);flex-shrink:0}
+        .profile-name{margin:0;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .profile-sub{margin:1px 0 0;font-size:11px;opacity:.86;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .quick-nav{display:flex;gap:4px;flex-shrink:0}
+        .quick-nav a{width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:#fff;background:rgba(255,255,255,.14);transition:background .18s,transform .18s}
+        .quick-nav a:hover,.quick-nav a:focus-visible{background:rgba(255,255,255,.24);transform:translateY(-1px);outline:none}
+        .search{margin:10px 10px 8px;height:40px;border-radius:10px;border:1px solid var(--line);background:#f6f8f9;display:flex;align-items:center;gap:8px;padding:0 12px}
+        .search:focus-within{border-color:var(--green-700);box-shadow:0 0 0 3px rgba(18,140,126,.12);background:#fff}
+        .search i{font-size:13px;color:var(--muted)}
+        .search input{width:100%;border:0;outline:0;background:transparent;font-size:14px;color:var(--ink)}
+        .search input::placeholder{color:#8b98a0}
+        .chat-list{flex:1;overflow-y:auto;background:#fff}
+        .chat-item{width:100%;border:0;border-bottom:1px solid #edf1f3;background:#fff;display:flex;align-items:center;gap:10px;padding:10px 12px;text-align:left;cursor:pointer;transition:background .16s}
+        .chat-item:hover{background:#f7fafb}
+        .chat-item.active{background:#ebf4f3}
+        .chat-item img{width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0}
+        .chat-copy{width:100%;min-width:0}
+        .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+        .name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .time{font-size:11px;color:var(--muted);flex-shrink:0}
+        .preview{margin-top:2px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .unread{min-width:18px;height:18px;border-radius:9px;background:var(--green-500);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;padding:0 6px;flex-shrink:0}
+
+        .panel{min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+        .header{min-height:64px;padding:0 10px;background:linear-gradient(180deg,var(--green-900),var(--green-700));color:#fff;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(0,0,0,.08)}
+        .icon-btn{width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+        .icon-btn:hover,.icon-btn:focus-visible{background:rgba(255,255,255,.25);outline:none}
+        .header img{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0}
+        .h-copy{min-width:0;flex:1}
+        .h-title{margin:0;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .h-sub{margin:1px 0 0;font-size:12px;opacity:.88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .conn{height:26px;border-radius:999px;padding:0 10px;display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;background:rgba(255,255,255,.18)}
+        .dot{width:8px;height:8px;border-radius:50%;background:#f9a826;box-shadow:0 0 0 2px rgba(0,0,0,.08)}
+        .conn[data-state="connected"] .dot{background:var(--green-500)}
+        .conn[data-state="offline"] .dot{background:#ef5350}
+
+        .thread{flex:1;overflow-y:auto;padding:14px 16px 8px;background-color:var(--bg);background-image:radial-gradient(rgba(0,0,0,.04) 1px,transparent 1px),radial-gradient(rgba(0,0,0,.03) 1px,transparent 1px);background-size:18px 18px,22px 22px;background-position:0 0,11px 11px}
+        .day{width:fit-content;margin:8px auto 10px;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.86);border:1px solid rgba(0,0,0,.06);font-size:11px;color:#54656f;font-weight:600}
+        .msg{max-width:min(78%,560px);margin-bottom:2px;animation:msgin .16s ease}
+        .msg.sent{margin-left:auto}
+        .msg.recv{margin-right:auto}
+        .bubble{padding:7px 10px 6px;border-radius:9px;box-shadow:0 1px 2px rgba(17,27,33,.13);font-size:14px;line-height:1.4;color:var(--ink);word-break:break-word}
+        .msg.sent .bubble{background:var(--sent);border-top-right-radius:2px}
+        .msg.recv .bubble{background:var(--recv);border-top-left-radius:2px}
+        .sender{margin:0 0 3px;font-size:11px;font-weight:700;color:#0f766e}
+        .text{white-space:pre-wrap;margin:0}
+        .meta{margin-top:4px;display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:11px;color:#667781}
+        .check{font-size:11px;color:#53bdeb}
+        .empty{min-height:100%;display:grid;place-content:center;text-align:center;color:#5e6e76;padding:20px;gap:8px}
+        .empty i{font-size:42px;color:#9caab3}
+        .empty h2{margin:0;font-size:18px;color:#24343d}
+        .empty p{margin:0;font-size:14px}
+
+        .composer{display:grid;grid-template-columns:auto auto 1fr auto;gap:8px;align-items:center;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:#f0f2f5;border-top:1px solid #d6dde2}
+        .composer-btn{width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:#54656f;font-size:18px;cursor:pointer}
+        .composer-btn:hover,.composer-btn:focus-visible{background:#e4e9ed;outline:none}
+        .input-wrap{height:40px;border-radius:20px;border:1px solid #d5dde3;background:#fff;padding:0 12px;display:flex;align-items:center}
+        .input-wrap:focus-within{border-color:var(--green-700);box-shadow:0 0 0 3px rgba(18,140,126,.1)}
+        .input-wrap input{width:100%;border:0;outline:0;background:transparent;font-size:15px;color:var(--ink)}
+        .send{width:40px;height:40px;border-radius:50%;border:0;background:var(--green-500);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .16s,filter .16s}
+        .send:hover,.send:focus-visible{transform:translateY(-1px);filter:brightness(.96);outline:none}
+        .mobile-only{display:none}
+        @keyframes msgin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        @media (max-width:980px){.app{grid-template-columns:320px 1fr}}
+        @media (max-width:860px){
+            body{background:#111b21}
+            .app{width:100%;height:100dvh;display:block;box-shadow:none;position:relative}
+            .list{width:100%;height:100%;border-right:0}
+            .panel{position:absolute;inset:0;z-index:8;transform:translateX(100%);transition:transform .24s ease}
+            .app.mobile-chat-open .panel{transform:translateX(0)}
+            .mobile-only{display:inline-flex}
+            .conn{font-size:10px;padding:0 8px}
+            .msg{max-width:86%}
+        }
+    </style>
+</head>
+<body>
+<main class="app" id="app-shell">
+    <aside class="list" aria-label="Chat list">
+        <header class="list-top">
+            <div class="profile">
+                <img src="https://i.pravatar.cc/42?u={{ username }}" alt="{{ username }} profile">
+                <div>
+                    <p class="profile-name">{{ username }}</p>
+                    <p class="profile-sub">{{ userph }}</p>
+                </div>
+            </div>
+            <nav class="quick-nav" aria-label="Quick navigation">
+                <a href="/index" aria-label="Go to home"><i class="fas fa-home"></i></a>
+                <a href="/videos" aria-label="Go to videos"><i class="fas fa-play"></i></a>
+                <a href="/status" aria-label="Go to status"><i class="fas fa-history"></i></a>
+                <a href="/logout" aria-label="Logout"><i class="fas fa-sign-out-alt"></i></a>
+            </nav>
+        </header>
+
+        <div class="search">
+            <label for="chat-search-input" class="sr-only">Search chats</label>
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input id="chat-search-input" type="search" placeholder="Search or start new chat" autocomplete="off">
+        </div>
+
+        <section class="chat-list" aria-label="Conversations">
+            {% for person in chatusers %}
+            <button
+                type="button"
+                class="chat-item{% if loop.first %} active{% endif %}"
+                data-chat-name="{{ person }}"
+                onclick='openChat({{ person | tojson }}, this)'
+            >
+                {% if person == 'FamilyChat' %}
+                <img src="https://i.pravatar.cc/48?img=70" alt="{{ person }} avatar">
+                {% else %}
+                <img src="https://i.pravatar.cc/48?u={{ person }}" alt="{{ person }} avatar">
+                {% endif %}
+                <div class="chat-copy">
+                    <div class="row">
+                        <span class="name">{{ person }}</span>
+                        <time class="time" datetime=""></time>
+                    </div>
+                    <div class="row">
+                        <span class="preview">No messages yet</span>
+                        <span class="unread" hidden>1</span>
+                    </div>
+                </div>
+            </button>
+            {% endfor %}
+        </section>
+    </aside>
+
+    <section class="panel" aria-label="Conversation area">
+        <header class="header">
+            <button type="button" class="icon-btn mobile-only" onclick="backToChats()" aria-label="Back to chats">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <img id="chat-avatar" src="https://i.pravatar.cc/40?img=70" alt="Selected chat avatar">
+            <div class="h-copy">
+                <h1 id="chat-title" class="h-title">FamilyChat</h1>
+                <p id="chat-subtitle" class="h-sub">Select a chat</p>
+            </div>
+            <div class="conn" id="connection-pill" data-state="connecting" aria-live="polite">
+                <span class="dot"></span>
+                <span id="connection-text">Connecting</span>
+            </div>
+        </header>
+
+        <div id="chat-messages" class="thread" role="log" aria-live="polite" aria-label="Messages"></div>
+
+        <form id="composer-form" class="composer" novalidate>
+            <button type="button" class="composer-btn" aria-label="Emoji"><i class="far fa-smile"></i></button>
+            <button type="button" class="composer-btn" aria-label="Attach file"><i class="fas fa-paperclip"></i></button>
+            <div class="input-wrap">
+                <label for="message-input" class="sr-only">Type your message</label>
+                <input id="message-input" type="text" placeholder="Type a message" autocomplete="off" required>
+            </div>
+            <button id="send-btn" type="submit" class="send" aria-label="Send message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </section>
+</main>
+
+<script>
+    const username = {{ username | tojson }};
+    const initialChat = {{ ((chatusers | first) if chatusers else "FamilyChat") | tojson }};
+    const familyMemberCount = {{ chatusers | length }};
+    let selectedChat = initialChat;
+    let ws = null;
+    let reconnectTimer = null;
+    let allMessages = [];
+
+    function escapeHtml(value) {
+        return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function truncate(value, size) {
+        const text = String(value ?? "");
+        return text.length <= size ? text : text.slice(0, size - 1) + "...";
+    }
+    function fmtTime(dateValue) {
+        const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    function fmtDay(dateValue) {
+        const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+        const key = date.toDateString();
+        if (key === today.toDateString()) return "Today";
+        if (key === yesterday.toDateString()) return "Yesterday";
+        return date.toLocaleDateString([], { month: "short", day: "numeric" });
+    }
+    function avatarUrlFor(name, size) {
+        if (name === "FamilyChat") return `https://i.pravatar.cc/${size}?img=70`;
+        return `https://i.pravatar.cc/${size}?u=${encodeURIComponent(name || "user")}`;
+    }
+    function normalizeMessage(raw) {
+        const when = raw && raw.ts ? new Date(raw.ts) : new Date();
+        const safeDate = Number.isNaN(when.getTime()) ? new Date() : when;
+        return {
+            message: String(raw?.message ?? ""),
+            from: raw?.from || raw?.username || "Unknown",
+            to: raw?.to || raw?.group || "FamilyChat",
+            ts: safeDate
+        };
+    }
+    function belongsToChat(msg, chatName) {
+        if (chatName === "FamilyChat") return msg.to === "FamilyChat";
+        return (msg.from === username && msg.to === chatName) || (msg.from === chatName && msg.to === username);
+    }
+    function selectedMessages() {
+        return allMessages.filter((msg) => belongsToChat(msg, selectedChat)).sort((a, b) => a.ts.getTime() - b.ts.getTime());
+    }
+    function setConnectionState(state) {
+        const pill = document.getElementById("connection-pill");
+        const text = document.getElementById("connection-text");
+        pill.dataset.state = state;
+        if (state === "connected") text.textContent = "Online";
+        else if (state === "connecting") text.textContent = "Connecting";
+        else if (state === "reconnecting") text.textContent = "Reconnecting";
+        else text.textContent = "Offline";
+    }
+    function updateChatHeader() {
+        const title = document.getElementById("chat-title");
+        const subtitle = document.getElementById("chat-subtitle");
+        const avatar = document.getElementById("chat-avatar");
+        title.textContent = selectedChat;
+        subtitle.textContent = selectedChat === "FamilyChat" ? `${familyMemberCount} members` : "Online";
+        avatar.src = avatarUrlFor(selectedChat, 40);
+        avatar.alt = `${selectedChat} avatar`;
+    }
+    function buildMessageElement(msg) {
+        const mine = msg.from === username;
+        const row = document.createElement("article");
+        row.className = `msg ${mine ? "sent" : "recv"}`;
+        const safeText = escapeHtml(msg.message).replace(/\n/g, "<br>");
+        const sender = !mine && selectedChat === "FamilyChat" ? `<p class="sender">${escapeHtml(msg.from)}</p>` : "";
+        row.innerHTML = `
+            <div class="bubble">
+                ${sender}
+                <p class="text">${safeText}</p>
+                <div class="meta">
+                    <time datetime="${msg.ts.toISOString()}">${fmtTime(msg.ts)}</time>
+                    ${mine ? '<i class="fas fa-check-double check" aria-hidden="true"></i>' : ""}
+                </div>
+            </div>
+        `;
+        return row;
+    }
+    function renderSelectedChat() {
+        const thread = document.getElementById("chat-messages");
+        const messages = selectedMessages();
+        thread.innerHTML = "";
+        if (!messages.length) {
+            thread.innerHTML = `
+                <section class="empty">
+                    <i class="far fa-comment-dots" aria-hidden="true"></i>
+                    <h2>No messages yet</h2>
+                    <p>Start this conversation with a quick hello.</p>
+                </section>
+            `;
+            return;
+        }
+        let lastDay = "";
+        messages.forEach((msg) => {
+            const dayKey = msg.ts.toDateString();
+            if (dayKey !== lastDay) {
+                const chip = document.createElement("div");
+                chip.className = "day";
+                chip.textContent = fmtDay(msg.ts);
+                thread.appendChild(chip);
+                lastDay = dayKey;
+            }
+            thread.appendChild(buildMessageElement(msg));
+        });
+        thread.scrollTop = thread.scrollHeight;
+    }
+    function updatePreviews() {
+        document.querySelectorAll(".chat-item").forEach((item) => {
+            const chatName = item.dataset.chatName;
+            const previewEl = item.querySelector(".preview");
+            const timeEl = item.querySelector(".time");
+            const unreadEl = item.querySelector(".unread");
+            if (!chatName || !previewEl || !timeEl || !unreadEl) return;
+            const list = allMessages.filter((msg) => belongsToChat(msg, chatName)).sort((a, b) => a.ts.getTime() - b.ts.getTime());
+            if (!list.length) {
+                previewEl.textContent = "No messages yet";
+                timeEl.textContent = "";
+                timeEl.dateTime = "";
+                unreadEl.hidden = true;
+                return;
+            }
+            const last = list[list.length - 1];
+            const prefix = last.from === username ? "You: " : (chatName === "FamilyChat" ? `${last.from}: ` : "");
+            previewEl.textContent = prefix + truncate(last.message, 38);
+            timeEl.textContent = fmtTime(last.ts);
+            timeEl.dateTime = last.ts.toISOString();
+            unreadEl.hidden = !(last.from !== username && chatName !== selectedChat);
+        });
+    }
+    function openChat(chatName, triggerEl) {
+        if (!chatName) return;
+        selectedChat = chatName;
+        document.querySelectorAll(".chat-item").forEach((item) => {
+            const active = item === triggerEl || item.dataset.chatName === chatName;
+            item.classList.toggle("active", active);
+            if (active) {
+                const unread = item.querySelector(".unread");
+                if (unread) unread.hidden = true;
+            }
+        });
+        updateChatHeader();
+        renderSelectedChat();
+        updatePreviews();
+        document.getElementById("app-shell").classList.add("mobile-chat-open");
+    }
+    function backToChats() {
+        document.getElementById("app-shell").classList.remove("mobile-chat-open");
+    }
+    function getWsUrl() {
+        const scheme = location.protocol === "https:" ? "wss" : "ws";
+        return `${scheme}://${location.host}/ws`;
+    }
+    function scheduleReconnect() {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connectWebSocket, 1500);
+    }
+    function connectWebSocket() {
+        setConnectionState("connecting");
+        ws = new WebSocket(getWsUrl());
+        ws.onopen = () => setConnectionState("connected");
+        ws.onmessage = (event) => {
+            let payload;
+            try { payload = JSON.parse(event.data); }
+            catch { payload = { message: String(event.data), from: "Unknown", to: "FamilyChat", ts: new Date().toISOString() }; }
+            const msg = normalizeMessage(payload);
+            allMessages.push(msg);
+            if (belongsToChat(msg, selectedChat)) renderSelectedChat();
+            else updatePreviews();
+        };
+        ws.onclose = (event) => {
+            if (event.code === 1000) { setConnectionState("offline"); return; }
+            setConnectionState("reconnecting");
+            scheduleReconnect();
+        };
+        ws.onerror = () => {
+            try { ws.close(); }
+            catch (_err) { setConnectionState("offline"); }
+        };
+    }
+    function sendMessage() {
+        const input = document.getElementById("message-input");
+        const text = input.value.trim();
+        if (!text) return;
+        if (!ws || ws.readyState !== WebSocket.OPEN) { setConnectionState("offline"); return; }
+        const payload = { message: text, from: username, to: selectedChat, group: null, ts: new Date().toISOString() };
+        try { ws.send(JSON.stringify(payload)); }
+        catch { setConnectionState("offline"); return; }
+        if (selectedChat !== "FamilyChat") {
+            allMessages.push(normalizeMessage(payload));
+            renderSelectedChat();
+            updatePreviews();
+        }
+        input.value = "";
+    }
+    async function loadHistory() {
+        try {
+            const response = await fetch("/messages");
+            if (!response.ok) return;
+            const data = await response.json();
+            if (!Array.isArray(data)) return;
+            allMessages = data.map(normalizeMessage);
+        } catch (error) {
+            console.error("Failed to load messages", error);
+        }
+    }
+    function filterChats(query) {
+        const q = query.trim().toLowerCase();
+        document.querySelectorAll(".chat-item").forEach((item) => {
+            const chatName = (item.dataset.chatName || "").toLowerCase();
+            item.style.display = chatName.includes(q) ? "" : "none";
+        });
+    }
+    window.addEventListener("DOMContentLoaded", async () => {
+        const first = document.querySelector(".chat-item[data-chat-name]");
+        if (first) {
+            selectedChat = first.dataset.chatName || selectedChat;
+            updateChatHeader();
+        }
+        await loadHistory();
+        renderSelectedChat();
+        updatePreviews();
+        connectWebSocket();
+        document.getElementById("chat-search-input").addEventListener("input", (event) => filterChats(event.target.value));
+        document.getElementById("composer-form").addEventListener("submit", (event) => { event.preventDefault(); sendMessage(); });
+        document.getElementById("message-input").addEventListener("keydown", (event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+        if (!window.matchMedia("(max-width: 860px)").matches) {
+            document.getElementById("app-shell").classList.add("mobile-chat-open");
+        }
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && window.matchMedia("(max-width: 860px)").matches) backToChats();
+    });
+</script>
+</body>
+</html>

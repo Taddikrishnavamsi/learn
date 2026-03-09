@@ -5,41 +5,48 @@ from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form, Request, UploadFile, File, HTTPException
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, PlainTextResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from google.cloud import storage
 import os
 import logging
+ 
+try:
+    # Works when running from repository root: `python -m uvicorn project.server:app`
+    from project.config import google_config  # noqa: F401
+    from project.routers import redirect
+    from project.routers import login
+except ModuleNotFoundError:
+    # Fallback for direct execution from inside `project/`
+    from config import google_config  # noqa: F401
+    from routers import redirect
+    from routers import login
+from pydantic import BaseModel
+
+
 
 app = FastAPI()
+app.include_router(redirect.router)#this include all redirects
+app.include_router(login.router)#login post one is included here
+
 app.add_middleware(SessionMiddleware, secret_key="change-this-secret")
 logger = logging.getLogger("uvicorn.error")
 
 BASE_DIR = Path(__file__).resolve().parent
-templates = Jinja2Templates(directory=str(BASE_DIR))
+DB_DIR = BASE_DIR / "fake_dbs"
+DB_DIR.mkdir(exist_ok=True)
+templates = Jinja2Templates(directory=str(BASE_DIR / "templetes"))
 
-# Setup Google Cloud credentials for Railway
-if os.getenv("RAILWAY_ENVIRONMENT"):
-    service_account_json = os.getenv("service-account")
-    if service_account_json:
-        creds_path = BASE_DIR / "service-account-temp.json"
-        creds_path.write_text(service_account_json)
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(creds_path)
-else:
-    # Local development
-    creds_path = BASE_DIR / "service-account.json"
-    if creds_path.exists():
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(creds_path)
+
 
 
 app.mount("/photos", StaticFiles(directory=str(BASE_DIR / "photos")), name="photos")
 
 ws_users = {}
 
-
 # Load user phone numbers
 userph = {}
-with open(BASE_DIR / "users.json", "r", encoding="utf-8") as f:
+with open(DB_DIR / "users.json", "r", encoding="utf-8") as f:
     users = json.load(f)
 for user in users:
     userph[user["username"]] = user["user_phone"]
@@ -47,7 +54,7 @@ print("Loaded user phone numbers:", userph)
 
 chatusers = ["FamilyChat"] + list(userph.keys())
 
-STATUS_FILE = BASE_DIR / "status.json"
+STATUS_FILE = DB_DIR / "status.json"
 def _load_status_map() -> dict:
     if not STATUS_FILE.exists():
         STATUS_FILE.write_text("{}", encoding="utf-8")
@@ -64,70 +71,10 @@ def _save_status_map(data: dict) -> None:
     
 # ================= ROUTES ================= #
 
-@app.get("/")
-async def get():
-    return HTMLResponse((BASE_DIR / "login.html").read_text(encoding="utf-8"))
 
-
-@app.get("/login")
-async def get_login():
-    return HTMLResponse((BASE_DIR / "login.html").read_text(encoding="utf-8"))
-
-
-@app.get("/favicon.ico")
-async def favicon():
-    return Response(status_code=204)
-
-
-@app.get("/logout")
-async def logout(request: Request):
-    request.session.clear()
-    response = RedirectResponse("/", status_code=303)
-    response.delete_cookie("session")
-    return response
-
-
-@app.post("/login")
-async def login(request: Request, username: str = Form(...), password: str = Form(...)):
-    with open(BASE_DIR / "users.json", "r", encoding="utf-8") as f:
-        users = json.load(f)
-
-    for user in users:
-        if user["username"] == username and user["password"] == password:
-            request.session["user"] = username
-            return RedirectResponse("/index", status_code=303)
-
-    return JSONResponse({"message": "Invalid credentials"}, status_code=401)
-
-@app.get("/videos")
-async def get_videos(request:Request):
-    username = request.session.get("user")
-    if not username:
-        return RedirectResponse("/")
-    return templates.TemplateResponse(
-        "videos.html",
-        {
-            "request": request,
-            "username": username,
-        },
-    )
-
-
-
-@app.get("/index")
-async def get_index(request: Request):
-    username = request.session.get("user")
-
-    if not username:
-        return RedirectResponse("/")
-
-    return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            "username": username,
-        },
-    )
+class User(BaseModel):
+    username:str
+    password:str
 
 
 @app.get("/status")
@@ -339,7 +286,7 @@ async def get_messages(request: Request):
     if not username:
         return RedirectResponse("/")
 
-    path = BASE_DIR / "messages.json"
+    path = DB_DIR / "messages.json"
     if not path.exists():
         return JSONResponse([])
 
@@ -367,7 +314,7 @@ file_lock = asyncio.Lock()
 
 
 async def save_message(data):
-    path = BASE_DIR / "messages.json"
+    path = DB_DIR / "messages.json"
 
     def write_sync():
         if not path.exists():
