@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 from google.cloud import storage
 import os
 import logging
+from project.Auth import auth
  
 try:
     # Works when running from repository root: `python -m uvicorn project.server:app`
@@ -28,13 +29,12 @@ from pydantic import BaseModel
 app = FastAPI()
 app.include_router(redirect.router)#this include all redirects
 app.include_router(login.router)#login post one is included here
+app.include_router(auth.router)
 
 app.add_middleware(SessionMiddleware, secret_key="change-this-secret")
 logger = logging.getLogger("uvicorn.error")
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_DIR = BASE_DIR / "fake_dbs"
-DB_DIR.mkdir(exist_ok=True)
 templates = Jinja2Templates(directory=str(BASE_DIR / "templetes"))
 
 
@@ -46,7 +46,7 @@ ws_users = {}
 
 # Load user phone numbers
 userph = {}
-with open(DB_DIR / "users.json", "r", encoding="utf-8") as f:
+with open(BASE_DIR / "fake_dbs"/"users.json", "r", encoding="utf-8") as f:
     users = json.load(f)
 for user in users:
     userph[user["username"]] = user["user_phone"]
@@ -54,7 +54,7 @@ print("Loaded user phone numbers:", userph)
 
 chatusers = ["FamilyChat"] + list(userph.keys())
 
-STATUS_FILE = DB_DIR / "status.json"
+STATUS_FILE = BASE_DIR /"fake_dbs"/"status.json"
 def _load_status_map() -> dict:
     if not STATUS_FILE.exists():
         STATUS_FILE.write_text("{}", encoding="utf-8")
@@ -286,7 +286,7 @@ async def get_messages(request: Request):
     if not username:
         return RedirectResponse("/")
 
-    path = DB_DIR / "messages.json"
+    path = BASE_DIR /"fake_dbs"/"messages.json"
     if not path.exists():
         return JSONResponse([])
 
@@ -314,7 +314,7 @@ file_lock = asyncio.Lock()
 
 
 async def save_message(data):
-    path = DB_DIR / "messages.json"
+    path = BASE_DIR /"fake_dbs"/"messages.json"
 
     def write_sync():
         if not path.exists():
@@ -384,5 +384,15 @@ async def chat(websocket: WebSocket):
     except WebSocketDisconnect:
         if username in ws_users:
             del ws_users[username]
+
+
+
+
+
+
+
+
+
+
 
 
